@@ -2,55 +2,74 @@ import requests
 import pandas as pd
 from datetime import datetime
 
-# Example: Replace with your IBKR gateway URL
-BASE_URL = "https://localhost:5000/v1/api"
-ACCOUNT_ID = "your_account_id"
+# Fetch Net Liquidation Value from account summary
+def get_net_liq():
+    url = f"{BASE_URL}/portfolio/{ACCOUNT_ID}/summary"
+    resp = requests.get(url, verify=False)
+    resp.raise_for_status()
+    data = resp.json()
+    for item in data:
+        if item.get("tag") == "NetLiquidation":
+            return float(item.get("value", 0))
+    return 1.0
 
-# 1. Get Net Liquidation Value
-summary = requests.get(f"{BASE_URL}/portfolio/{ACCOUNT_ID}/summary", verify=False).json()
-net_liq = float(summary.get("netLiquidation", 1))
+# Get trades 
+def get_transactions():
+    url = f"{BASE_URL}/portfolio/{ACCOUNT_ID}/transactions"
+    resp = requests.get(url, verify=False)
+    resp.raise_for_status()
+    return resp.json()
 
-# 2. Get Transaction History
-transactions = requests.get(f"{BASE_URL}/portfolio/{ACCOUNT_ID}/transactions", verify=False).json()
+# Convert IBKR transactions into report format
+def build_trade_log(transactions, net_liq):
+    trades = []
+    for tx in transactions:
+        try:
+            symbol = tx.get("symbol")
+            open_ts = tx.get("tradeDate")
+            close_ts = tx.get("settleDate")
 
-trades = []
-for tx in transactions:
-    # Basic info
-    symbol = tx.get("symbol")
-    open_date = datetime.fromtimestamp(tx.get("openDate")/1000).strftime("%Y-%m-%d")
-    close_date = datetime.fromtimestamp(tx.get("closeDate")/1000).strftime("%Y-%m-%d")
-    
-    duration = (datetime.fromtimestamp(tx.get("closeDate")/1000) - 
-                datetime.fromtimestamp(tx.get("openDate")/1000)).days
-    
-    qty = abs(float(tx.get("quantity", 0)))
-    entry_price = float(tx.get("price", 0))
-    sizing = qty * entry_price
-    
-    outcome = float(tx.get("realizedPNL", 0))
-    per_trade_pct = (outcome / sizing * 100) if sizing > 0 else 0
-    net_pct = (outcome / net_liq * 100) if net_liq > 0 else 0
+            open_date = datetime.strptime(open_ts, "%Y%m%d") if open_ts else None
+            close_date = datetime.strptime(close_ts, "%Y%m%d") if close_ts else None
+            duration = (close_date - open_date).days if open_date and close_date else 0
 
-    trades.append({
-        "TRADE": symbol,
-        "DATE (OPEN)": open_date,
-        "TIME (CLOSE)": close_date,
-        "DURATION": duration,
-        "ENTRY": "",
-        "STOP": "",
-        "TARGET": "",
-        "Sizing": sizing,
-        "OUTCOME": outcome,
-        "Per Trade % Gain/Loss": per_trade_pct,
-        "Net % Gain/Loss": net_pct,
-        "TAKEAWAYS": "",
-        "Would I take this trade again?": "",
-        "Verdict": "",
-        "Reasoning": "",
-        "Psychology": ""
-    })
+            qty = abs(float(tx.get("quantity", 0)))
+            price = float(tx.get("tradePrice", 0))
+            sizing = qty * price
 
-# 3. Save to CSV
-df = pd.DataFrame(trades)
-df.to_csv("trade_log.csv", index=False)
-print("Trade log exported to trade_log.csv")
+            outcome = float(tx.get("proceeds", 0))  # IBKR reports realized PnL as "proceeds"
+            per_trade_pct = (outcome / sizing * 100) if sizing > 0 else 0
+            net_pct = (outcome / net_liq * 100) if net_liq > 0 else 0
+
+            trades.append({
+                "TRADE": symbol,
+                "DATE (OPEN)": open_date.strftime("%Y-%m-%d") if open_date else "",
+                "TIME (CLOSE)": close_date.strftime("%Y-%m-%d") if close_date else "",
+                "DURATION": duration,
+                "ENTRY": "",
+                "STOP": "",
+                "TARGET": "",
+                "Sizing": round(sizing, 2),
+                "OUTCOME": round(outcome, 2),
+                "Per Trade % Gain/Loss": round(per_trade_pct, 2),
+                "Net % Gain/Loss": round(net_pct, 4),
+                "TAKEAWAYS": "",
+                "Would I take this trade again?": "",
+                "Verdict": "",
+                "Reasoning": "",
+                "Psychology": ""
+            })
+        except Exception as e:
+            print(f"⚠️ Skipping transaction due to error: {e}")
+    return trades
+
+if __name__ == "__main__":
+    print(f"🔍 Using IBKR Gateway at port {PORT}")
+    net_liq = get_net_liq()
+    transactions = get_transactions()
+    trades = build_trade_log(transactions, net_liq)
+
+    df = pd.DataFrame(trades)
+    df.to_csv("ibkr_trade_log.csv", index=False)
+    print("✅ Trade log exported to ibkr_trade_log.csv")
+    #print(df.head())
