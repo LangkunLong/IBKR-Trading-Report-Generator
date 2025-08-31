@@ -4,6 +4,8 @@ import yaml
 from datetime import datetime, timedelta
 import os
 
+MAX_SIZE_PER_TRADE = 1000
+
 with open("config.yaml", "r") as f:
     cfg = yaml.safe_load(f)
 
@@ -62,6 +64,7 @@ def build_trade_log(transactions, net_liq):
 
             outcome = float(tx.get("proceeds", 0))  # IBKR reports realized PnL as "proceeds"
             per_trade_pct = (outcome / sizing * 100) if sizing > 0 else 0
+            net_trade_pct = (outcome / MAX_SIZE_PER_TRADE * 100) 
             net_pct = (outcome / net_liq * 100) if net_liq > 0 else 0
 
             trades.append({
@@ -75,7 +78,8 @@ def build_trade_log(transactions, net_liq):
                 "Sizing": round(sizing, 2),
                 "OUTCOME": round(outcome, 2),
                 "Per Trade % Gain/Loss": round(per_trade_pct, 2),
-                "Net % Gain/Loss": round(net_pct, 4),
+                "Net Trade % Gain/Loss": round(net_trade_pct, 2),
+                "Account % Gain/Loss": round(net_pct, 4),
                 "TAKEAWAYS": "",
                 "Would I take this trade again?": "",
                 "Verdict": "",
@@ -92,8 +96,8 @@ OUTPUT_FILE = cfg.get("output_file", "ibkr_trade_log.csv")
 PORT = get_port_from_conf(CONF_PATH)
 BASE_URL = f"https://localhost:{PORT}/v1/api"
 
+
 if __name__ == "__main__":
-    
     print(f"🔍 Using IBKR Gateway at port {PORT}")
     net_liq = get_net_liq()
     transactions = get_transactions()
