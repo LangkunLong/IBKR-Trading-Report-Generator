@@ -1,6 +1,23 @@
 import requests
 import pandas as pd
+import yaml
 from datetime import datetime
+import os
+
+with open("config.yaml", "r") as f:
+    cfg = yaml.safe_load(f)
+
+requests.packages.urllib3.disable_warnings()
+
+# auto detect port
+def get_port_from_conf(conf_path):
+    try:
+        with open(conf_path, "r") as f:
+            conf = yaml.safe_load(f)
+        return conf.get("server", {}).get("port", 5000)
+    except Exception as e:
+        print(f"Could not read conf.yaml, defaulting to 5000. Error: {e}")
+        return 5000
 
 # Fetch Net Liquidation Value from account summary
 def get_net_liq():
@@ -62,6 +79,12 @@ def build_trade_log(transactions, net_liq):
         except Exception as e:
             print(f"⚠️ Skipping transaction due to error: {e}")
     return trades
+
+ACCOUNT_ID = cfg["account_id"]
+CONF_PATH = os.path.expanduser(cfg["conf_path"])
+OUTPUT_FILE = cfg.get("output_file", "ibkr_trade_log.csv")
+PORT = get_port_from_conf(CONF_PATH)
+BASE_URL = f"https://localhost:{PORT}/v1/api"
 
 if __name__ == "__main__":
     print(f"🔍 Using IBKR Gateway at port {PORT}")
