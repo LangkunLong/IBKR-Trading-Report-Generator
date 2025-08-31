@@ -1,7 +1,7 @@
 import requests
 import pandas as pd
 import yaml
-from datetime import datetime
+from datetime import datetime, timedelta
 import os
 
 with open("config.yaml", "r") as f:
@@ -30,10 +30,16 @@ def get_net_liq():
             return float(item.get("value", 0))
     return 1.0
 
-# Get trades 
-def get_transactions():
+# Get transactions from past 7 days
+def get_transactions(period = 7):
+    end_date = datetime.today()
+    start_date = end_date - timedelta(days=period)
+    params = {
+        "start": start_date.strftime("%Y%m%d"),
+        "end": end_date.strftime("%Y%m%d")
+    }
     url = f"{BASE_URL}/portfolio/{ACCOUNT_ID}/transactions"
-    resp = requests.get(url, verify=False)
+    resp = requests.get(url, params=params, verify=False)
     resp.raise_for_status()
     return resp.json()
 
@@ -87,6 +93,7 @@ PORT = get_port_from_conf(CONF_PATH)
 BASE_URL = f"https://localhost:{PORT}/v1/api"
 
 if __name__ == "__main__":
+    
     print(f"🔍 Using IBKR Gateway at port {PORT}")
     net_liq = get_net_liq()
     transactions = get_transactions()
@@ -94,5 +101,5 @@ if __name__ == "__main__":
 
     df = pd.DataFrame(trades)
     df.to_csv("ibkr_trade_log.csv", index=False)
-    print("✅ Trade log exported to ibkr_trade_log.csv")
+    print("Trade log exported to ibkr_trade_log.csv")
     #print(df.head())
