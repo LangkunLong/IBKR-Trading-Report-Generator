@@ -40,27 +40,30 @@ def build_trade_log(transactions, net_liq):
     trades = []
     for tx in transactions:
         try:
+            # Basic fields
             symbol = tx.get("symbol")
             open_ts = tx.get("tradeDate")
             close_ts = tx.get("settleDate")
+            qty = abs(float(tx.get("quantity", 0)))
+            price = float(tx.get("tradePrice", 0))
+            multiplier = float(tx.get("multiplier", 1))  # for options, default 1
 
+            # Dates
             open_date = datetime.strptime(open_ts, "%Y%m%d") if open_ts else None
             close_date = datetime.strptime(close_ts, "%Y%m%d") if close_ts else None
             duration = (close_date - open_date).days if open_date and close_date else 0
 
-            qty = abs(float(tx.get("quantity", 0)))
-            price = float(tx.get("tradePrice", 0))
-            sizing = qty * price
-
-            outcome = float(tx.get("proceeds", 0))  # IBKR reports realized PnL as "proceeds"
+            # Sizing and PnL
+            sizing = qty * price * multiplier
+            outcome = float(tx.get("proceeds", 0))  # realized PnL
             per_trade_pct = (outcome / sizing * 100) if sizing > 0 else 0
-            net_trade_pct = (outcome / MAX_SIZE_PER_TRADE * 100) 
+            net_trade_pct = (outcome / MAX_SIZE_PER_TRADE * 100)
             net_pct = (outcome / net_liq * 100) if net_liq > 0 else 0
 
             trades.append({
                 "TRADE": symbol,
                 "DATE (OPEN)": open_date.strftime("%Y-%m-%d") if open_date else "",
-                "TIME (CLOSE)": close_date.strftime("%Y-%m-%d") if close_date else "",
+                "DATE (CLOSE)": close_date.strftime("%Y-%m-%d") if close_date else "",
                 "DURATION": duration,
                 "ENTRY": "",
                 "STOP": "",
