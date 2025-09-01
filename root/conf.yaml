@@ -5,8 +5,8 @@
     listenSsl: true
     ccp: false
     svcEnvironment: "v1"
-    sslCert: "vertx.jks"
-    sslPwd: "mywebapi"
+    sslCert: server.jks
+    sslPwd: IBKRPWD
     authDelay: 3000
     portalBaseURL: ""
     serverOptions:

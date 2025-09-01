@@ -11,19 +11,9 @@ with open("config.yaml", "r") as f:
 
 requests.packages.urllib3.disable_warnings()
 
-# auto detect port
-def get_port_from_conf(conf_path):
-    try:
-        with open(conf_path, "r") as f:
-            conf = yaml.safe_load(f)
-        return conf.get("server", {}).get("port", 5000)
-    except Exception as e:
-        print(f"Could not read conf.yaml, defaulting to 5000. Error: {e}")
-        return 5000
-
 # Fetch Net Liquidation Value from account summary
 def get_net_liq():
-    url = f"{BASE_URL}/portfolio/{ACCOUNT_ID}/summary"
+    url = f"{BASE_URL}/v1/api/iserver/account/accounts"
     resp = requests.get(url, verify=False)
     resp.raise_for_status()
     data = resp.json()
@@ -40,7 +30,7 @@ def get_transactions(period = 7):
         "start": start_date.strftime("%Y%m%d"),
         "end": end_date.strftime("%Y%m%d")
     }
-    url = f"{BASE_URL}/portfolio/{ACCOUNT_ID}/transactions"
+    url = f"{BASE_URL}/v1/api/iserver/account/transactions"
     resp = requests.get(url, params=params, verify=False)
     resp.raise_for_status()
     return resp.json()
@@ -91,14 +81,12 @@ def build_trade_log(transactions, net_liq):
     return trades
 
 ACCOUNT_ID = cfg["account_id"]
-CONF_PATH = os.path.expanduser(cfg["conf_path"])
 OUTPUT_FILE = cfg.get("output_file", "ibkr_trade_log.csv")
-PORT = get_port_from_conf(CONF_PATH)
-BASE_URL = f"https://localhost:{PORT}/v1/api"
+BASE_URL = f"https://localhost:5000"
 
 
 if __name__ == "__main__":
-    print(f"🔍 Using IBKR Gateway at port {PORT}")
+    print(f"🔍 Using IBKR Gateway at port 5000")
     net_liq = get_net_liq()
     transactions = get_transactions()
     trades = build_trade_log(transactions, net_liq)
