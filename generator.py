@@ -13,7 +13,7 @@ requests.packages.urllib3.disable_warnings()
 
 # Fetch Net Liquidation Value from account summary
 def get_net_liq():
-    url = f"{BASE_URL}/portfolio/{ACCOUNT_ID}/summary"
+    url = f"{BASE_URL}/v1/api/iserver/account/accounts"
     resp = requests.get(url, verify=False)
     resp.raise_for_status()
     data = resp.json()
@@ -30,7 +30,7 @@ def get_transactions(period = 7):
         "start": start_date.strftime("%Y%m%d"),
         "end": end_date.strftime("%Y%m%d")
     }
-    url = f"{BASE_URL}/portfolio/{ACCOUNT_ID}/transactions"
+    url = f"{BASE_URL}/v1/api/iserver/account/transactions"
     resp = requests.get(url, params=params, verify=False)
     resp.raise_for_status()
     return resp.json()
@@ -82,7 +82,7 @@ def build_trade_log(transactions, net_liq):
 
 ACCOUNT_ID = cfg["account_id"]
 OUTPUT_FILE = cfg.get("output_file", "ibkr_trade_log.csv")
-BASE_URL = f"https://localhost:5000/v1/api"
+BASE_URL = f"https://localhost:5000"
 
 
 if __name__ == "__main__":

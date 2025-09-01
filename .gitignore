@@ -1,2 +1,8 @@
 config.yaml
 mock_trade_log.csv
+root/server.crt
+root/server.key
+.vertx/
+root/server.jks
+root/server.p12
+logs/
