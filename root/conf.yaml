@@ -16,8 +16,8 @@
         maxWorkerExecuteTime: 100
         internalBlockingPoolSize: 20
     cors:
-        origin.allowed: "*"
-        allowCredentials: false
+        origin.allowed: "https://localhost:5000"
+        allowCredentials: true
     webApps:
         - name: "demo"
           index: "index.html"

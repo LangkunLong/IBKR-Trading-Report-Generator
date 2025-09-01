@@ -13,27 +13,56 @@ requests.packages.urllib3.disable_warnings()
 
 # Fetch Net Liquidation Value from account summary
 def get_net_liq():
-    url = f"{BASE_URL}/v1/api/iserver/account/accounts"
+    url = f"{BASE_URL}/v1/api/iserver/account/{ACCOUNT_ID}/summary"
     resp = requests.get(url, verify=False)
     resp.raise_for_status()
     data = resp.json()
-    for item in data:
-        if item.get("tag") == "NetLiquidation":
-            return float(item.get("value", 0))
-    return 1.0
+    #print(data)
+    return data["netLiquidationValue"]
 
-# Get transactions from past 7 days
-def get_transactions(period = 7):
-    end_date = datetime.today()
-    start_date = end_date - timedelta(days=period)
-    params = {
-        "start": start_date.strftime("%Y%m%d"),
-        "end": end_date.strftime("%Y%m%d")
-    }
-    url = f"{BASE_URL}/v1/api/iserver/account/transactions"
-    resp = requests.get(url, params=params, verify=False)
-    resp.raise_for_status()
-    return resp.json()
+# Get completed trades/executions from the past period
+def get_trades_and_orders(period=7):
+    trades = []
+    
+    # Get recent trades/executions
+    try:
+        url = f"{BASE_URL}/v1/api/iserver/account/trades"
+        resp = requests.get(url, verify=False, timeout=10)
+        resp.raise_for_status()
+        trades.extend(resp.json())
+        print(f"✅ Got {len(trades)} recent trades")
+    except Exception as e:
+        print(f"⚠️ Could not get recent trades: {e}")
+    
+    # Get orders (filled orders contain execution data)
+    try:
+        url = f"{BASE_URL}/v1/api/iserver/account/orders"
+        params = {"filters": "filled"}  # Only get filled orders
+        resp = requests.get(url, params=params, verify=False, timeout=10)
+        resp.raise_for_status()
+        orders = resp.json()
+        
+        # Add filled orders to trades
+        for order in orders.get('orders', []):
+            if order.get('status') in ['Filled', 'filled']:
+                trades.append(order)
+                
+        print(f"✅ Total trades including filled orders: {len(trades)}")
+    except Exception as e:
+        print(f"⚠️ Could not get filled orders: {e}")
+    
+    return trades
+
+#Get current positions to help match closing trades
+def get_positions():
+    try:
+        url = f"{BASE_URL}/v1/api/iserver/account/{ACCOUNT_ID}/positions/0"
+        resp = requests.get(url, verify=False, timeout=10)
+        resp.raise_for_status()
+        return resp.json()
+    except Exception as e:
+        print(f"⚠️ Could not get positions: {e}")
+        return []
 
 # Convert IBKR transactions into report format
 def build_trade_log(transactions, net_liq):
