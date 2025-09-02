@@ -6,3 +6,7 @@ root/server.key
 root/server.jks
 root/server.p12
 logs/
+ibkr_trade_log.csv
+ibkr_trade_log.xlsx
+ibkr_trade_log_open_positions.csv
+ibkr_trade_log_open_positions.xlsx
