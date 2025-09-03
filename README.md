@@ -32,12 +32,26 @@ This script connects to the IBKR Client Gateway, which runs a local web server a
 For enhanced security and a seamless connection experience, it is highly recommended to use a locally trusted certificate. You can generate the necessary certificates for localhost using **mkcert**.
 
 1. **Install mkcert**: Follow the instructions for your operating system on the official mkcert GitHub page.
-2. **Generate a Trusted Certificate**: Run the following commands to create and install a locally trusted certificate for localhost:
+    - **Windows**: install via [Chocolatey](https://chocolatey.org/install)  
+    ```powershell
+    choco install mkcert
+    ```
+3. **Generate a Trusted Certificate**: Run the following commands to create and install a locally trusted certificate for localhost:
 
         mkcert -install
-        mkcert localhost
+        mkcert localhost 127.0.0.1 ::1
+   
+    This produces two files:
+   - localhost.pem → the certificate
+   - localhost-key.pem → the private key
 
-3. **Use the Certificate**: When the script connects to the IBKR API, the `requests` library will automatically verify the connection using the certificate you generated, removing the need to disable SSL verification.
+4. **Install Java and Configure PATH**: The IBKR Gateway requires Java. Verify if it’s installed:
+       ```java -version```
+   Configure JAVA_HOME and PATH on Windows
+   
+
+
+7. **Use the Certificate**: When the script connects to the IBKR API, the `requests` library will automatically verify the connection using the certificate you generated, removing the need to disable SSL verification.
 
 ---
 
@@ -51,6 +65,23 @@ Before running the script, you must configure your account details. Create a fil
 
 Replace `'your_account_id'` with your actual IBKR account number.
 
+---
+
+## Running the IBKR Client Gateway Portal
+
+1. Follow the instructions listed here: https://www.interactivebrokers.com/campus/ibkr-api-page/cpapi-v1/#cp-tutorial
+2. The gateway is included in the current repo, but you have to write your own config.yaml and conf.yaml files with your specific account information
+3. Make sure you have JAVA installed and exported in the correct path
+4. Execute the Gateway (from web API):
+
+    `bin\run.bat root\conf.yaml`
+
+    And in the case of Unix systems:
+
+    `bin/run.sh root/conf.yaml`
+
+Notes regarding setting up your own certifificate for connecting to localhost (this is not needed as there is no security concern)
+- Chrome will say error because it doesn't recognize IBKR's default certificate since it is not issued from a Certificate Authority
 ---
 
 ## 🏃 Running the Script
