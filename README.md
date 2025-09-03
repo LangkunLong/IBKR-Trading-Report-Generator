@@ -46,12 +46,44 @@ For enhanced security and a seamless connection experience, it is highly recomme
    - localhost-key.pem → the private key
 
 4. **Install Java and Configure PATH**: The IBKR Gateway requires Java. Verify if it’s installed:
-       ```java -version```
-   Configure JAVA_HOME and PATH on Windows
+   Set JAVA_HOME for your user
+    ```setx JAVA_HOME "C:\Program Files\Java\jdk-21"```
+
+   Add JDK bin to PATH for your user
+    ```setx PATH "%JAVA_HOME%\bin;%PATH%"```
+
+   Verfiy Java version
+   ```java -version```
    
+5. **Convert PEM → PKCS#12 (.p12) with OpenSSL**: IBKR default takes  in the java keystore file instead of a certificate password pairing, so need to do the following:
+   - Example using mkcert outputs named localhost.pem / localhost-key.pem
+    openssl pkcs12 -export `
+      -in localhost.pem `
+      -inkey localhost-key.pem `
+      -out server.p12 `
+      -name ibkr `
+       -passout pass:IBKRPWD
+   - server.p12 is created.
+   - The export password here is IBKRPWD (example). Use your own strong password.
+     
+6. **Convert PKCS#12 (.p12) → Java Keystore (.jks) with keytool**
+   keytool -importkeystore `
+  -srckeystore .\server.p12 `
+  -srcstoretype pkcs12 `
+  -srcstorepass IBKRPWD `
+  -destkeystore .\server.jks `
+  -deststoretype JKS `
+  -deststorepass IBKRPWD
 
+7. **Use the .jks in your app**:set these in ```conf.yaml```
+   ```
+       listenPort: 5000
+        listenSsl: true
+        sslCert: server.jks
+        sslPwd: IBKRPWD
+   ```
 
-7. **Use the Certificate**: When the script connects to the IBKR API, the `requests` library will automatically verify the connection using the certificate you generated, removing the need to disable SSL verification.
+9. **Use the Certificate**: When the script connects to the IBKR API, the `requests` library will automatically verify the connection using the certificate you generated, removing the need to disable SSL verification.
 
 ---
 
